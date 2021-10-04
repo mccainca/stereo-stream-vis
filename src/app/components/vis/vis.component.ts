@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { AudioContext } from 'angular-audio-context';
 
 import butterchurn from 'butterchurn';
-import butterchurnPresets from 'butterchurn-presets';
+// import butterchurnPresets from 'butterchurn-presets';
+import butterchurnPresetsAll from 'butterchurn-presets/all';
+
 import * as _ from 'lodash';
 
 @Component({
@@ -48,34 +50,51 @@ export class VisComponent implements OnInit {
        textureRatio: 1,
      });
 
-     var node = this._audioContext.createMediaElementSource(audio)
+     // var node = this._audioContext.createMediaElementSource(audio)
 
-     var delayedAudible = this._audioContext.createDelay();
-     delayedAudible.delayTime.value = 0.26;
 
-     node.connect(delayedAudible)
+//microphone
+
+    if ( navigator.mediaDevices ) {
+      navigator.mediaDevices.getUserMedia( { audio: true, video: false } )
+      .then( stream => {
+        // create stream using audioMotion audio context
+        const micStream = this._audioContext.createMediaStreamSource( stream );
+        // connect microphone stream to analyzer
+        this.visualizer.connectAudio(micStream);
+        this.startRenderer();
+        this.visualizer.volume = 0;
+        micStream.connect(this._audioContext.destination);
+
+
+
+      })
+      .catch( err => {
+        alert('Microphone access denied by user');
+      });
+    }
+    else {
+      alert('User mediaDevices not available');
+    }
+//end
+
+     // var delayedAudible = this._audioContext.createDelay();
+     // delayedAudible.delayTime.value = 0.26;
+
+     // node.connect(delayedAudible)
      // get audioNode from audio source or microphone
-     this.visualizer.connectAudio(node);
-     this.startRenderer();
 
-     node.connect(this._audioContext.destination);
 
-     Object.assign(this.presets, butterchurnPresets.getPresets());
+     Object.assign(this.presets, butterchurnPresetsAll);
      this.presets = _(this.presets).toPairs().sortBy(([k, v]) => k.toLowerCase()).fromPairs().value();
      this.presetKeys = _.keys(this.presets);
+     console.log(this.presetKeys.length);
      this.presetIndex = Math.floor(Math.random() * this.presetKeys.length);
 
-     // var presetSelect = document.getElementById('presetSelect');
-     // for(var i = 0; i < this.presetKeys.length; i++) {
-     //     var opt = document.createElement('option');
-     //     opt.innerHTML = this.presetKeys[i].substring(0,60) + (this.presetKeys[i].length > 60 ? '...' : '');
-     //     opt.value = i.toString();
-     //     presetSelect?.appendChild(opt);
-     // }
 
      // resize visualizer
 
-     // this.visualizer.setRendererSize(1600, 1200);
+     this.visualizer.setRendererSize(800, 600);
 
      // render a frame
      this.nextPreset(0);
